@@ -21,8 +21,7 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("PointToPoint");
 
-int
-main (int argc, char *argv[])
+int main (int argc, char *argv[])
 {
 	Time::SetResolution (Time::NS);
 	LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);

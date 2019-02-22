@@ -8,7 +8,19 @@
 #include "ns3/applications-module.h"
 
 using namespace ns3;
-NS_LOG_COMPONENT_DEFINE ("PointToPoint");
+NS_LOG_COMPONENT_DEFINE ("P2P");
+
+/*
+ * 
+ * this is the architecture
+ * n0-----r0-----r1-----n1
+ *    L0     L1     L2
+ * L0 -> 8Mbps
+ * L1 -> 1 to 10 Mbps
+ * L2 -> 8Mbps
+ * n0 client, n1 server
+ * 
+ */
 
 int main(int argc, char *argv[])
 {
@@ -23,37 +35,28 @@ int main(int argc, char *argv[])
   /* Build nodes. */
   NodeContainer client;
   client.Create (1);
-  NodeContainer server;
-  server.Create (1);
   NodeContainer router_0;
   router_0.Create (1);
   NodeContainer router_1;
   router_1.Create (1);
+  NodeContainer server;
+  server.Create (1);
 
   /* Build link. */
-  PointToPointHelper p2p_p2p_0;
-  p2p_p2p_0.SetDeviceAttribute ("DataRate", StringValue("8Mbps"));
-  p2p_p2p_0.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (10000)));
-  PointToPointHelper p2p_p2p_1;
-  p2p_p2p_1.SetDeviceAttribute ("DataRate", StringValue("8Mbps"));
-  p2p_p2p_1.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (10000)));
-  PointToPointHelper p2p_p2p_2;
-  p2p_p2p_2.SetDeviceAttribute ("DataRate", StringValue("8Mbps"));
-  p2p_p2p_2.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (10000)));
+  PointToPointHelper p2p_client_r0;
+  p2p_client_r0.SetDeviceAttribute ("DataRate", StringValue("8Mbps"));
+  p2p_client_r0.SetChannelAttribute ("Delay", StringValue("1ms"));
+  PointToPointHelper p2p_r0_r1;
+  p2p_r0_r1.SetDeviceAttribute ("DataRate", StringValue("8Mbps"));
+  p2p_r0_r1.SetChannelAttribute ("Delay", StringValue("1ms"));
+  PointToPointHelper p2p_r1_server;
+  p2p_r1_server.SetDeviceAttribute ("DataRate", StringValue("8Mbps"));
+  p2p_r1_server.SetChannelAttribute ("Delay", StringValue("1ms"));
 
   /* Build link net device container. */
-  NodeContainer all_p2p_0;
-  all_p2p_0.Add (client);
-  all_p2p_0.Add (router_0);
-  NetDeviceContainer ndc_p2p_0 = p2p_p2p_0.Install (all_p2p_0);
-  NodeContainer all_p2p_1;
-  all_p2p_1.Add (router_0);
-  all_p2p_1.Add (router_1);
-  NetDeviceContainer ndc_p2p_1 = p2p_p2p_1.Install (all_p2p_1);
-  NodeContainer all_p2p_2;
-  all_p2p_2.Add (server);
-  all_p2p_2.Add (router_1);
-  NetDeviceContainer ndc_p2p_2 = p2p_p2p_2.Install (all_p2p_2);
+  NetDeviceContainer ndc_client_r0 = p2p_client_r0.Install (client.Get(0), router_0.Get(0));
+  NetDeviceContainer ndc_r0_r1 = p2p_r0_r1.Install (router_0.Get(0), router_1.Get(0));
+  NetDeviceContainer ndc_r1_server = p2p_r1_server.Install (server.Get(0), router_1.Get(0));
 
   /* Install the IP stack. */
   InternetStackHelper internetStackH;
@@ -65,11 +68,11 @@ int main(int argc, char *argv[])
   /* IP assign. */
   Ipv4AddressHelper ipv4;
   ipv4.SetBase ("10.0.0.0", "255.255.255.0");
-  Ipv4InterfaceContainer iface_ndc_p2p_0 = ipv4.Assign (ndc_p2p_0);
+  Ipv4InterfaceContainer iface_ndc_client_r0 = ipv4.Assign (ndc_client_r0);
   ipv4.SetBase ("10.0.1.0", "255.255.255.0");
-  Ipv4InterfaceContainer iface_ndc_p2p_1 = ipv4.Assign (ndc_p2p_1);
+  Ipv4InterfaceContainer iface_ndc_r0_r1 = ipv4.Assign (ndc_r0_r1);
   ipv4.SetBase ("10.0.2.0", "255.255.255.0");
-  Ipv4InterfaceContainer iface_ndc_p2p_2 = ipv4.Assign (ndc_p2p_2);
+  Ipv4InterfaceContainer iface_ndc_r1_server = ipv4.Assign (ndc_r1_server);
 
   /* Generate Route. */
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
@@ -77,20 +80,20 @@ int main(int argc, char *argv[])
   /* Generate Application. */
   uint16_t port_udpEcho_0 = 9;
   UdpEchoServerHelper server_udpEcho_0 (port_udpEcho_0);
-  ApplicationContainer apps_udpEcho_0 = server_udpEcho_0.Install (server.Get(0));
-  apps_udpEcho_0.Start (Seconds (1.0));
-  apps_udpEcho_0.Stop (Seconds (10.0));
+  ApplicationContainer server_app = server_udpEcho_0.Install (server.Get(0));
+  server_app.Start (Seconds (1.0));
+  server_app.Stop (Seconds (30.0));
   
-  Time interPacketInterval_udpEcho_0 = Seconds (1.0);
+  Time interPacketInterval_udpEcho_0 = Seconds (1);
 
-  UdpEchoClientHelper client_udpEcho_0 (iface_ndc_p2p_2.GetAddress(0), 9);
-  client_udpEcho_0.SetAttribute ("MaxPackets", UintegerValue (1));
+  UdpEchoClientHelper client_udpEcho_0 (iface_ndc_r1_server.GetAddress(0), 9);
+  client_udpEcho_0.SetAttribute ("MaxPackets", UintegerValue (6000));
   client_udpEcho_0.SetAttribute ("Interval", TimeValue (interPacketInterval_udpEcho_0));
-  client_udpEcho_0.SetAttribute ("PacketSize", UintegerValue (1024));
-  apps_udpEcho_0 = client_udpEcho_0.Install (client.Get (0));
-  client_udpEcho_0.SetFill(apps_udpEcho_0.Get(0),"Hello World!");
-  apps_udpEcho_0.Start (Seconds (2.0));
-  apps_udpEcho_0.Stop (Seconds (10.0));
+  // client_udpEcho_0.SetAttribute ("PacketSize", UintegerValue (1024));
+  ApplicationContainer client_app = client_udpEcho_0.Install (client.Get (0));
+  client_udpEcho_0.SetFill(client_app.Get(0),"Hello World!");
+  client_app.Start (Seconds (2.0));
+  client_app.Stop (Seconds (120.0));
 
 
 	AnimationInterface anim ("p2p.xml");
@@ -100,12 +103,12 @@ int main(int argc, char *argv[])
   anim.SetConstantPosition (server.Get(0), 30.0, 30.0);
 
   AsciiTraceHelper ascii;
-  p2p_p2p_0.EnableAsciiAll (ascii.CreateFileStream ("client.tr"));
-  p2p_p2p_0.EnablePcap ("client", ndc_p2p_0.Get(0), false, false);
+  p2p_client_r0.EnableAsciiAll (ascii.CreateFileStream ("client.tr"));
+  p2p_client_r0.EnablePcap ("client", ndc_client_r0.Get(0), false, false);
 
   // AsciiTraceHelper ascii;
-  p2p_p2p_2.EnableAsciiAll (ascii.CreateFileStream ("server.tr"));
-  p2p_p2p_2.EnablePcap ("server", ndc_p2p_0.Get(0), false, false);
+  p2p_r1_server.EnableAsciiAll (ascii.CreateFileStream ("server.tr"));
+  p2p_r1_server.EnablePcap ("server", ndc_r1_server.Get(0), false, false);
 
   Simulator::Run ();
   Simulator::Destroy ();
