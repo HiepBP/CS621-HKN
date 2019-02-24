@@ -25,9 +25,12 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/uinteger.h"
 #include "ns3/pointer.h"
+#include "ns3/ipv4-header.h"
 #include "point-to-point-net-device.h"
 #include "point-to-point-channel.h"
 #include "ppp-header.h"
+#include <iomanip> 
+#include <zlib.h>
 
 namespace ns3 {
 
@@ -363,16 +366,16 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
       //  decompress
       //dont compress
       if(m_is_router){
-        LlcSnapHeader llc;
-        packet->PeekHeader (llc);
-        if (llc.GetType () == 0x0021)
-        {
-            // found an ARP packet
-        } 
-        uint8_t *buffer = new uint8_t[packet->GetSize()];
-        packet->CopyData(buffer, packet->GetSize());
-        std::string data(buffer, buffer + packet->GetSize());
-        std::cout<<"received"<<data<<std::endl;
+        NS_LOG_UNCOND("ROUTER RECEIVE PACKET");
+        PppHeader header;
+        packet->RemoveHeader (header);
+        std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
+
+        if (header.GetProtocol() == (int)0x4021) {
+          //Decompress
+          header.SetProtocol(0x0021);
+        }
+        packet->AddHeader (header);
       }
 
       m_snifferTrace (packet);
@@ -391,6 +394,10 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
       // there is no difference in what the promisc callback sees and what the
       // normal receive callback sees.
       //
+      // if(!m_is_router){
+      //   ProcessHeader (packet, protocol);
+      // }
+      
       ProcessHeader (packet, protocol);
 
       if (!m_promiscCallback.IsNull ())
@@ -553,7 +560,42 @@ PointToPointNetDevice::Send (
   // Stick a point to point protocol header on the packet in preparation for
   // shoving it out the door.
   //
+  // if(!m_is_router){
+  //   AddHeader (packet, protocolNumber);
+  // }
   AddHeader (packet, protocolNumber);
+
+  //Check packet to compress
+  if(m_is_router){
+    NS_LOG_UNCOND("ROUTER SEND PACKET");
+    PppHeader header;
+    packet->RemoveHeader (header);
+    std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
+    if (header.GetProtocol() == (int)0x0021)
+    {
+      uLongf size = packet->GetSize()+2;
+      uint8_t *buffer = new uint8_t[size];
+      buffer[0] = 0x00;
+      buffer[1] = 0x21;
+      packet->CopyData(&(buffer[2]), size);
+      for (int i = 0; i < (int)packet->GetSize(); ++i)
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i] << " ";
+      std::cout << std::endl;
+      //Compress
+      uint8_t *newBuffer = new uint8_t[size];
+      uLongf *newLen = &size;
+      //Compress not work now
+      // compress(newBuffer, newLen, buffer, size);
+      std::cout<<"New Packet: ";
+      for (int i = 0; i < (int)packet->GetSize(); ++i)
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i] << " ";
+      std::cout << std::endl;
+      //Update the packet
+      // packet = new Packet(buffer, size);
+      header.SetProtocol(0x4021);
+    }
+    packet->AddHeader (header);
+  }
 
   m_macTxTrace (packet);
 
