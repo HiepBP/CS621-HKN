@@ -26,17 +26,83 @@
 #include "ns3/uinteger.h"
 #include "ns3/pointer.h"
 #include "ns3/ipv4-header.h"
+#include "ns3/udp-header.h"
 #include "point-to-point-net-device.h"
 #include "point-to-point-channel.h"
 #include "ppp-header.h"
 #include <iomanip> 
-#include <zlib.h>
 
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("PointToPointNetDevice");
 
 NS_OBJECT_ENSURE_REGISTERED (PointToPointNetDevice);
+
+
+
+// Compress a string to a list of output symbols.
+// The result will be written to the output iterator
+// starting at "result"; the final iterator is returned.
+template <typename Iterator>
+Iterator compress(const std::string &uncompressed, Iterator result) {
+  // Build the dictionary.
+  int dictSize = 256;
+  std::map<std::string,int> dictionary;
+  for (int i = 0; i < 256; i++)
+    dictionary[std::string(1, i)] = i;
+ 
+  std::string w;
+  for (std::string::const_iterator it = uncompressed.begin();
+       it != uncompressed.end(); ++it) {
+    char c = *it;
+    std::string wc = w + c;
+    if (dictionary.count(wc))
+      w = wc;
+    else {
+      *result++ = dictionary[w];
+      // Add wc to the dictionary.
+      dictionary[wc] = dictSize++;
+      w = std::string(1, c);
+    }
+  }
+ 
+  // Output the code for w.
+  if (!w.empty())
+    *result++ = dictionary[w];
+  return result;
+}
+ 
+// Decompress a list of output ks to a string.
+// "begin" and "end" must form a valid range of ints
+template <typename Iterator>
+std::string decompress(Iterator begin, Iterator end) {
+  // Build the dictionary.
+  int dictSize = 256;
+  std::map<int,std::string> dictionary;
+  for (int i = 0; i < 256; i++)
+    dictionary[i] = std::string(1, i);
+ 
+  std::string w(1, *begin++);
+  std::string result = w;
+  std::string entry;
+  for ( ; begin != end; begin++) {
+    int k = *begin;
+    if (dictionary.count(k))
+      entry = dictionary[k];
+    else if (k == dictSize)
+      entry = w + w[0];
+    else
+      throw "Bad compressed k";
+ 
+    result += entry;
+ 
+    // Add w+entry[0] to the dictionary.
+    dictionary[dictSize++] = w + entry[0];
+ 
+    w = entry;
+  }
+  return result;
+}
 
 TypeId 
 PointToPointNetDevice::GetTypeId (void)
@@ -366,13 +432,50 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
       //  decompress
       //dont compress
       if(m_is_router){
-        NS_LOG_UNCOND("ROUTER RECEIVE PACKET");
         PppHeader header;
         packet->RemoveHeader (header);
-        std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
+        // std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
 
         if (header.GetProtocol() == (int)0x4021) {
+          NS_LOG_UNCOND("ROUTER RECEIVE PACKET");
+          //Remove ip header from packet
+          Ipv4Header ip_header;
+          packet -> RemoveHeader(ip_header);
+          // std::cout<<"Packet size - IP: "<<packet->GetSize()<<std::endl;
+
+          UdpHeader udp_header;
+          packet -> RemoveHeader(udp_header);
+          // std::cout<<"Packet size - UDP: "<<packet->GetSize()<<std::endl;
+
+          //Get data buffer and add 0x0021 protocol to data
+          //Size = size + 2 because old protocol at to data
+          int size = packet->GetSize();
+          uint8_t *buffer = new uint8_t[size];
+          packet->CopyData(buffer, size);
+          for (int i = 0; i < size; ++i)
+            std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i] << " ";
+          std::cout << std::endl;
           //Decompress
+          std::string decompress_data = decompress(&buffer[0], &buffer[size]);
+          std::cout<<decompress_data<<std::endl;
+          std::vector<uint8_t> vector_buffer(decompress_data.begin(), decompress_data.end());
+          // for (std::vector<uint8_t>::const_iterator i = vector_buffer.begin(); i != vector_buffer.end(); ++i)
+          //   std::cout << *i << ' ';
+          vector_buffer.erase(vector_buffer.begin(),vector_buffer.begin()+2);
+          size = size - 2;
+          buffer = &vector_buffer[0];
+
+          //Update the packet
+          packet = new Packet(buffer, size);
+          //Update udp size
+          int udp_size = size + 8;
+          udp_header.ForcePayloadSize(udp_size);
+          packet->AddHeader(udp_header);
+          //Update ip size
+          int ip_size = ip_header.GetPayloadSize() - 2;
+          ip_header.SetPayloadSize(ip_size);
+          packet->AddHeader(ip_header);
+          //Update protocol to 0x4021
           header.SetProtocol(0x0021);
         }
         packet->AddHeader (header);
@@ -567,31 +670,58 @@ PointToPointNetDevice::Send (
 
   //Check packet to compress
   if(m_is_router){
-    NS_LOG_UNCOND("ROUTER SEND PACKET");
+    int size = packet->GetSize();
     PppHeader header;
     packet->RemoveHeader (header);
-    std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
+    // std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
     if (header.GetProtocol() == (int)0x0021)
     {
-      uLongf size = packet->GetSize()+2;
+      NS_LOG_UNCOND("ROUTER SEND PACKET");
+      //Remove ip header from packet
+      Ipv4Header ip_header;
+      packet -> RemoveHeader(ip_header);
+      // std::cout<<"Packet size - IP: "<<packet->GetSize()<<std::endl;
+
+      UdpHeader udp_header;
+      packet -> RemoveHeader(udp_header);
+      // std::cout<<"Packet size - UDP: "<<packet->GetSize()<<std::endl;
+
+      //Get data buffer and add 0x0021 protocol to data
+      //Size = size + 2 because old protocol at to data
+      int size = packet->GetSize()+2;
       uint8_t *buffer = new uint8_t[size];
       buffer[0] = 0x00;
       buffer[1] = 0x21;
       packet->CopyData(&(buffer[2]), size);
-      for (int i = 0; i < (int)packet->GetSize(); ++i)
+      for (int i = 0; i < size; ++i)
         std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i] << " ";
       std::cout << std::endl;
-      //Compress
-      uint8_t *newBuffer = new uint8_t[size];
-      uLongf *newLen = &size;
-      //Compress not work now
-      // compress(newBuffer, newLen, buffer, size);
-      std::cout<<"New Packet: ";
-      for (int i = 0; i < (int)packet->GetSize(); ++i)
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i] << " ";
+      // Compress
+      // std::string data;
+      // data.assign(buffer[0], buffer[size]);
+      std::string data;
+      data.reserve(size); // prepare space for the buffer and extra termination character '\0'
+      for (int i = 0; i<size; ++i) {
+          data += buffer[i]; // typecast because String takes uint8_t as something else than char
+      }
+      std::cout<<data<<" - "<<data.size()<<std::endl;
+      uint8_t *compress_buffer = new uint8_t[size];
+      compress(data, compress_buffer);
+      for (int i = 0; i < size; ++i)
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)compress_buffer[i] << " ";
       std::cout << std::endl;
+
       //Update the packet
-      // packet = new Packet(buffer, size);
+      packet = new Packet(compress_buffer, size);
+      //Update udp size
+      int udp_size = size + 8;
+      udp_header.ForcePayloadSize(udp_size);
+      packet->AddHeader(udp_header);
+      //Update ip size
+      int ip_size = ip_header.GetPayloadSize() +2;
+      ip_header.SetPayloadSize(ip_size);
+      packet->AddHeader(ip_header);
+      //Update protocol to 0x4021
       header.SetProtocol(0x4021);
     }
     packet->AddHeader (header);
