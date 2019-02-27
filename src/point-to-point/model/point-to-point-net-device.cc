@@ -452,12 +452,8 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
           int size = packet->GetSize();
           uint8_t *buffer = new uint8_t[size];
           packet->CopyData(buffer, size);
-          for (int i = 0; i < size; ++i)
-            std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i] << " ";
-          std::cout << std::endl;
           //Decompress
           std::string decompress_data = decompress(&buffer[0], &buffer[size]);
-          std::cout<<decompress_data<<std::endl;
           std::vector<uint8_t> vector_buffer(decompress_data.begin(), decompress_data.end());
           // for (std::vector<uint8_t>::const_iterator i = vector_buffer.begin(); i != vector_buffer.end(); ++i)
           //   std::cout << *i << ' ';
@@ -508,7 +504,8 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
           m_macPromiscRxTrace (originalPacket);
           m_promiscCallback (this, packet, protocol, GetRemote (), GetAddress (), NetDevice::PACKET_HOST);
         }
-
+      NS_LOG_UNCOND(packet);
+      NS_LOG_UNCOND(originalPacket);
       m_macRxTrace (originalPacket);
       m_rxCallback (this, packet, protocol, GetRemote ());
     }
@@ -670,7 +667,7 @@ PointToPointNetDevice::Send (
 
   //Check packet to compress
   if(m_is_router){
-    int size = packet->GetSize();
+    // int size = packet->GetSize();
     PppHeader header;
     packet->RemoveHeader (header);
     // std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
@@ -693,9 +690,6 @@ PointToPointNetDevice::Send (
       buffer[0] = 0x00;
       buffer[1] = 0x21;
       packet->CopyData(&(buffer[2]), size);
-      for (int i = 0; i < size; ++i)
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i] << " ";
-      std::cout << std::endl;
       // Compress
       // std::string data;
       // data.assign(buffer[0], buffer[size]);
@@ -704,12 +698,8 @@ PointToPointNetDevice::Send (
       for (int i = 0; i<size; ++i) {
           data += buffer[i]; // typecast because String takes uint8_t as something else than char
       }
-      std::cout<<data<<" - "<<data.size()<<std::endl;
       uint8_t *compress_buffer = new uint8_t[size];
       compress(data, compress_buffer);
-      for (int i = 0; i < size; ++i)
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)compress_buffer[i] << " ";
-      std::cout << std::endl;
 
       //Update the packet
       packet = new Packet(compress_buffer, size);
