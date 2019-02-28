@@ -60,10 +60,10 @@ int main(int argc, char *argv[])
   NetDeviceContainer ndc_r1_server = p2p_r1_server.Install (server.Get(0), router_1.Get(0));
 
   Ptr<PointToPointNetDevice> p2p_r0 = DynamicCast<PointToPointNetDevice>(ndc_r0_r1.Get(0));
-  p2p_r0->SetRouter(true);
+  p2p_r0->SetCompress(true);
 
   Ptr<PointToPointNetDevice> p2p_r1 = DynamicCast<PointToPointNetDevice>(ndc_r0_r1.Get(1));
-  p2p_r1->SetRouter(true);
+  p2p_r1->SetCompress(true);
 
   /* Install the IP stack. */
   InternetStackHelper internetStackH;
@@ -100,11 +100,14 @@ int main(int argc, char *argv[])
   p2p_r0->SetPacketSize(packet_size);
   p2p_r1->SetPacketSize(packet_size);
 
+
+
   UdpEchoClientHelper client_udpEcho_0 (iface_ndc_r1_server.GetAddress(0), 9);
   client_udpEcho_0.SetAttribute ("MaxPackets", UintegerValue (1));
   client_udpEcho_0.SetAttribute ("Interval", TimeValue (interPacketInterval_udpEcho_0));
-  client_udpEcho_0.SetAttribute ("PacketSize", UintegerValue (packet_size));
+  // client_udpEcho_0.SetAttribute ("PacketSize", UintegerValue (packet_size));
   ApplicationContainer client_app = client_udpEcho_0.Install (client.Get (0));
+  client_udpEcho_0.SetFill(client_app.Get(0), 0, packet_size);
   client_app.Start (Seconds (2.0));
   client_app.Stop (Seconds (120.0));
 
@@ -114,21 +117,17 @@ int main(int argc, char *argv[])
   anim.SetConstantPosition (router_0.Get(0), 10.0, 10.0);
   anim.SetConstantPosition (router_1.Get(0), 20.0, 20.0);
   anim.SetConstantPosition (server.Get(0), 30.0, 30.0);
-
+  
   // AsciiTraceHelper ascii;
   AsciiTraceHelper ascii;
   p2p_client_r0.EnableAsciiAll (ascii.CreateFileStream ("client.tr"));
   p2p_client_r0.EnablePcap ("client", ndc_client_r0.Get(0), false, false);
 
-
   p2p_r1_server.EnableAsciiAll (ascii.CreateFileStream ("router_0.tr"));
-  p2p_r1_server.EnablePcap ("router_0", ndc_r0_r1.Get(0), false, false);
+  p2p_r0_r1.EnablePcap ("router_0", ndc_r0_r1.Get(0), false, false);
 
   p2p_r1_server.EnableAsciiAll (ascii.CreateFileStream ("router_1.tr"));
-  p2p_r1_server.EnablePcap ("router_1", ndc_r0_r1.Get(1), false, false);
-  
-  p2p_r1_server.EnableAsciiAll (ascii.CreateFileStream ("router_1_to_server.tr"));
-  p2p_r1_server.EnablePcap ("router_1_to_server", ndc_r1_server.Get(1), false, false);
+  p2p_r0_r1.EnablePcap ("router_1", ndc_r0_r1.Get(1), false, false);
 
   p2p_r1_server.EnableAsciiAll (ascii.CreateFileStream ("server.tr"));
   p2p_r1_server.EnablePcap ("server", ndc_r1_server.Get(0), false, false);

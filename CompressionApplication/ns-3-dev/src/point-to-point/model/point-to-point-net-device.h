@@ -149,7 +149,7 @@ public:
    */
   void Receive (Ptr<Packet> p);
 
-  void SetRouter(bool is_router);
+  void SetCompress(bool is_router);
 
   void SetPacketSize(int packet_size);
 
@@ -475,7 +475,7 @@ private:
    */
   static uint16_t EtherToPpp (uint16_t protocol);
 
-  bool m_is_router = false;
+  bool m_compress = false;
   
   int m_packet_size = 0;
 };

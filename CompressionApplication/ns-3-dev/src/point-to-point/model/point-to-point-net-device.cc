@@ -400,15 +400,15 @@ PointToPointNetDevice::SetReceiveErrorModel (Ptr<ErrorModel> em)
 }
 
 void
-PointToPointNetDevice::SetRouter(bool is_router){
+PointToPointNetDevice::SetCompress(bool is_router){
   NS_LOG_FUNCTION (this);
-  m_is_router = is_router;
+  m_compress = is_router;
 }
 
 void
 PointToPointNetDevice::SetPacketSize(int packet_size){
   NS_LOG_FUNCTION (this);
-  m_packet_size = packet_size;
+  m_compress = packet_size;
 }
 
 void
@@ -427,7 +427,7 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
     }
   else 
     {
-      if(m_is_router){
+      if(m_compress){
         Ptr<Packet> originalPacket = packet->Copy ();      
         PppHeader header;
         packet->RemoveHeader (header);
@@ -655,7 +655,7 @@ PointToPointNetDevice::Send (
 
   AddHeader (packet, protocolNumber);
   //Check packet to compress
-  if(m_is_router){
+  if(m_compress){
     PppHeader header;
     packet->RemoveHeader (header);
     // std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
