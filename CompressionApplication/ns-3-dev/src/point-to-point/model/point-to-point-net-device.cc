@@ -30,7 +30,10 @@
 #include "point-to-point-net-device.h"
 #include "point-to-point-channel.h"
 #include "ppp-header.h"
-#include <iomanip> 
+#include <iomanip>
+#include <libxml/tree.h>
+#include <libxml/parser.h>
+#include <fstream>
 #include "zlib.h"
 
 namespace ns3 {
@@ -403,12 +406,31 @@ void
 PointToPointNetDevice::SetCompress(bool is_router){
   NS_LOG_FUNCTION (this);
   m_compress = is_router;
+  this->ReadConfiguration();
 }
 
 void
 PointToPointNetDevice::SetPacketSize(int packet_size){
   NS_LOG_FUNCTION (this);
   m_compress = packet_size;
+}
+
+void
+PointToPointNetDevice::ReadConfiguration(){
+  xmlDoc *doc = NULL;
+  xmlNode *root_element = NULL;
+  doc = xmlReadFile("./configuration.xml", NULL, 0);
+  /*Get the root element node */
+  root_element = xmlDocGetRootElement(doc); 
+      xmlNode *cur_node = NULL;
+  for (cur_node = root_element; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+      printf("node type: Element, name: %s\n", cur_node->name);
+    }
+    m_protocol = (int)strtol((char*)xmlNodeGetContent(cur_node), NULL, 16);
+  }
+  xmlFreeDoc(doc);       // free document
+  xmlCleanupParser();    // Free globals
 }
 
 void
@@ -464,7 +486,7 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
           ip_header.SetPayloadSize(udp_size);
           packet->AddHeader(ip_header);
           //Update protocol to 0x4021
-          header.SetProtocol(0x0021);
+          header.SetProtocol(m_protocol);
           
         }
         packet->AddHeader (header);
@@ -659,7 +681,7 @@ PointToPointNetDevice::Send (
     PppHeader header;
     packet->RemoveHeader (header);
     // std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
-    if (header.GetProtocol() == (int)0x0021)
+    if (header.GetProtocol() == (int)m_protocol)
     {
       //Remove ip header from packet
       Ipv4Header ip_header;

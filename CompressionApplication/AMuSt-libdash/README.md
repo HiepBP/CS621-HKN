@@ -45,4 +45,3 @@ This work (the extension of libdash found in **libdash/libdash/source/amust/**) 
 (A Context-Adaptive Content Ecosystem Under Uncertainty), project number I1402.
 
 Please also consider the acknowledgements for *libdash* in the [bitmovin/libdash](https://github.com/bitmovin/libdash) repository.
-
