@@ -156,6 +156,8 @@ public:
 
   int GetReceivedSize(void);
 
+  void ReadConfiguration();
+
   // The remaining methods are documented in ns3::NetDevice*
 
   virtual void SetIfIndex (const uint32_t index);
@@ -479,6 +481,8 @@ private:
   static uint16_t EtherToPpp (uint16_t protocol);
 
   bool m_compress = false;
+
+  int m_protocol;
   
   int m_packet_size = 0;
 };
