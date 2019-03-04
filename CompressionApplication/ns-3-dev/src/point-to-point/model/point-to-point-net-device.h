@@ -68,6 +68,7 @@ public:
    * \return The TypeId for this class
    */
   static TypeId GetTypeId (void);
+  
   int GetSize(void);
 
   /**
@@ -151,6 +152,8 @@ public:
   void Receive (Ptr<Packet> p);
 
   void SetCompress(bool is_router);
+
+  int GetPacketsReceived(void);
 
   void SetPacketSize(int packet_size);
 

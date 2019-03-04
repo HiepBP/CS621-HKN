@@ -37,6 +37,7 @@
 
 namespace ns3 {
 int num_packets = 0;
+int packets_received = 0;
 
 NS_LOG_COMPONENT_DEFINE ("PointToPointNetDevice");
 
@@ -409,6 +410,11 @@ PointToPointNetDevice::SetCompress(bool is_router){
   this->ReadConfiguration();
 }
 
+int
+PointToPointNetDevice::GetPacketsReceived() {
+  return packets_received;
+}
+
 void
 PointToPointNetDevice::SetPacketSize(int packet_size){
   NS_LOG_FUNCTION (this);
@@ -459,6 +465,8 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
         Ptr<Packet> originalPacket = packet->Copy ();      
         PppHeader header;
         packet->RemoveHeader (header);
+        std::cout<< packets_received << " " << m_compress << " " << header.GetProtocol() << std::endl;
+        packets_received++;
         // std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
 
         if (header.GetProtocol() == (int)0x4021) {
@@ -498,6 +506,15 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
         packet->AddHeader (header);
   
       }
+      else {
+        //Increment packet received count for server end
+        // Ptr<Packet> originalPacket = packet->Copy ();      
+        // PppHeader header;
+        // originalPacket->RemoveHeader (header);
+        // std::cout<< packets_received << " " << m_compress << " " << header.GetProtocol() << std::endl;
+        // packets_received++;
+      }
+
         // Hit the trace hooks.  All of these hooks are in the same place in this 
         // device because it is so simple, but this is not usually the case in
         // more complicated devices.
