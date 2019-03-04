@@ -412,7 +412,7 @@ PointToPointNetDevice::SetCompress(bool is_router){
 void
 PointToPointNetDevice::SetPacketSize(int packet_size){
   NS_LOG_FUNCTION (this);
-  m_compress = packet_size;
+  m_packet_size = packet_size;
 }
 
 int
