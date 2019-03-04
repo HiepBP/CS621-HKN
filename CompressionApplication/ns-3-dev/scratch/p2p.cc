@@ -32,6 +32,9 @@ int main(int argc, char *argv[])
   cmd.Parse (argc, argv);
 
   /* Configuration. */
+  std::cout << "Enter Compression Link Capacity (xMbps) : ";
+  std::string link_capacity = "8Mbps";
+  std::cin >> link_capacity;
 
   /* Build nodes. */
   NodeContainer client;
@@ -48,7 +51,7 @@ int main(int argc, char *argv[])
   p2p_client_r0.SetDeviceAttribute ("DataRate", StringValue("8Mbps"));
   p2p_client_r0.SetChannelAttribute ("Delay", StringValue("1ms"));
   PointToPointHelper p2p_r0_r1;
-  p2p_r0_r1.SetDeviceAttribute ("DataRate", StringValue("8Mbps"));
+  p2p_r0_r1.SetDeviceAttribute ("DataRate", StringValue(link_capacity));
   p2p_r0_r1.SetChannelAttribute ("Delay", StringValue("1ms"));
   PointToPointHelper p2p_r1_server;
   p2p_r1_server.SetDeviceAttribute ("DataRate", StringValue("8Mbps"));
@@ -86,31 +89,24 @@ int main(int argc, char *argv[])
 
   /* Generate Application. */
   uint16_t port_udpEcho_0 = 9;
-  UdpEchoServerHelper server_udpEcho_0 (port_udpEcho_0);
+  UdpServerHelper server_udpEcho_0 (port_udpEcho_0);
   ApplicationContainer server_app = server_udpEcho_0.Install (server.Get(0));
   server_app.Start (Seconds (1.0));
   server_app.Stop (Seconds (30.0));
+  Time interPacketInterval_udpEcho_0 = MilliSeconds (500);
 
-  Time interPacketInterval_udpEcho_0 = Seconds (1);
-
-  // ndc_client_r0.Get(0)->SetAttribute ("MaxPackets", UintegerValue (1));
-  // ndc_client_r0.Get(0)->SetAttribute ("Interval", TimeValue (interPacketInterval_udpEcho_0));
-  
   int packet_size = 1100;
   p2p_r0->SetPacketSize(packet_size);
   p2p_r1->SetPacketSize(packet_size);
 
-
-
-  UdpEchoClientHelper client_udpEcho_0 (iface_ndc_r1_server.GetAddress(0), 9);
-  client_udpEcho_0.SetAttribute ("MaxPackets", UintegerValue (1));
-  client_udpEcho_0.SetAttribute ("Interval", TimeValue (interPacketInterval_udpEcho_0));
-  // client_udpEcho_0.SetAttribute ("PacketSize", UintegerValue (packet_size));
-  ApplicationContainer client_app = client_udpEcho_0.Install (client.Get (0));
-  client_udpEcho_0.SetFill(client_app.Get(0), 0, packet_size);
+  UdpClientHelper udp_client_0 (iface_ndc_r1_server.GetAddress(0), 9);
+  udp_client_0.SetAttribute ("MaxPackets", UintegerValue (6000));
+  udp_client_0.SetAttribute ("Interval", TimeValue (interPacketInterval_udpEcho_0));
+  udp_client_0.SetAttribute ("PacketSize", UintegerValue (1100));
+  udp_client_0.SetAttribute ("Entropy", BooleanValue(true));
+  ApplicationContainer client_app = udp_client_0.Install (client.Get (0));
   client_app.Start (Seconds (2.0));
-  client_app.Stop (Seconds (120.0));
-
+  client_app.Stop (Seconds (6002.0));
 
 	AnimationInterface anim ("p2p.xml");
 	anim.SetConstantPosition (client.Get(0), 0.0, 0.0);

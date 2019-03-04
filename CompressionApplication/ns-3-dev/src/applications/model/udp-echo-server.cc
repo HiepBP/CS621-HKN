@@ -32,7 +32,10 @@
 
 #include "udp-echo-server.h"
 
+
+
 namespace ns3 {
+int num_packets = 0;
 
 NS_LOG_COMPONENT_DEFINE ("UdpEchoServerApplication");
 
@@ -177,7 +180,8 @@ UdpEchoServer::HandleRead (Ptr<Socket> socket)
                        Inet6SocketAddress::ConvertFrom (from).GetIpv6 () << " port " <<
                        Inet6SocketAddress::ConvertFrom (from).GetPort ());
         }
-
+      num_packets++;
+      std::cout << " COUNT : " << num_packets;
       packet->RemoveAllPacketTags ();
       packet->RemoveAllByteTags ();
 

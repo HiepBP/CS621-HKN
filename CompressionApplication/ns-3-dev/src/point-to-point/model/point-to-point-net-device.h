@@ -68,6 +68,7 @@ public:
    * \return The TypeId for this class
    */
   static TypeId GetTypeId (void);
+  int GetSize(void);
 
   /**
    * Construct a PointToPointNetDevice
@@ -153,7 +154,7 @@ public:
 
   void SetPacketSize(int packet_size);
 
-  void ReadConfiguration();
+  int GetReceivedSize(void);
 
   // The remaining methods are documented in ns3::NetDevice*
 
@@ -478,8 +479,6 @@ private:
   static uint16_t EtherToPpp (uint16_t protocol);
 
   bool m_compress = false;
-
-  int m_protocol;
   
   int m_packet_size = 0;
 };

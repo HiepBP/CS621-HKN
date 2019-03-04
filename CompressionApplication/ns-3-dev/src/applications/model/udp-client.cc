@@ -28,10 +28,12 @@
 #include "ns3/socket-factory.h"
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
+#include "ns3/boolean.h"
 #include "udp-client.h"
 #include "seq-ts-header.h"
 #include <cstdlib>
 #include <cstdio>
+#include <random>
 
 namespace ns3 {
 
@@ -69,6 +71,11 @@ UdpClient::GetTypeId (void)
                    UintegerValue (1024),
                    MakeUintegerAccessor (&UdpClient::m_size),
                    MakeUintegerChecker<uint32_t> (12,65507))
+    .AddAttribute ("Entropy",
+                   "Boolean value identifying if low or high entropy is to be sent. If true, set to high entropy, otherwise, low entropy",
+                   BooleanValue (true),
+                   MakeBooleanAccessor (&UdpClient::m_entropy),
+                   MakeBooleanChecker ())
   ;
   return tid;
 }
@@ -79,6 +86,7 @@ UdpClient::UdpClient ()
   m_sent = 0;
   m_socket = 0;
   m_sendEvent = EventId ();
+  m_entropy = false;
 }
 
 UdpClient::~UdpClient ()
@@ -167,6 +175,23 @@ UdpClient::StopApplication (void)
   Simulator::Cancel (m_sendEvent);
 }
 
+uint8_t*
+UdpClient::GetPayload (void)
+{
+     std::random_device rd;
+     std::uniform_int_distribution<std::uint8_t> dist(0, 255);
+
+    uint8_t *byte_array = new uint8_t[m_size]; //initialize the array of m_size size with all zero values
+    
+    if(m_entropy) { // if high entropy        
+        for(uint32_t n = 0; n < m_size; n++) {
+            uint8_t tmp = dist(rd);
+            byte_array[uint8_t(n)] = tmp;
+        }
+    } // else low entropy
+    return byte_array;
+}
+
 void
 UdpClient::Send (void)
 {
@@ -174,7 +199,10 @@ UdpClient::Send (void)
   NS_ASSERT (m_sendEvent.IsExpired ());
   SeqTsHeader seqTs;
   seqTs.SetSeq (m_sent);
-  Ptr<Packet> p = Create<Packet> (m_size-(8+4)); // 8+4 : the size of the seqTs header
+//  Ptr<Packet> p = Create<Packet> (m_size-(8+4)); // 8+4 : the size of the seqTs header
+//  uint8_t* byte_array = new uint8_t[m_size]();
+
+  Ptr<Packet> p = Create<Packet> (GetPayload(), m_size-(8+4)); // 8+4 : the size of the seqTs header
   p->AddHeader (seqTs);
 
   std::stringstream peerAddressStringStream;

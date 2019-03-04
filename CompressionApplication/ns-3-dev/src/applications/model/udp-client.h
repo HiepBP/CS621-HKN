@@ -65,6 +65,8 @@ public:
    */
   void SetRemote (Address addr);
 
+//  void SetEntropy (bool entropy);
+
 protected:
   virtual void DoDispose (void);
 
@@ -73,6 +75,7 @@ private:
   virtual void StartApplication (void);
   virtual void StopApplication (void);
 
+  uint8_t* GetPayload (void);
   /**
    * \brief Send a packet
    */
@@ -87,6 +90,8 @@ private:
   Address m_peerAddress; //!< Remote peer address
   uint16_t m_peerPort; //!< Remote peer port
   EventId m_sendEvent; //!< Event to send the next packet
+
+  bool m_entropy; //!< Is high or low entropy
 
 };
 
