@@ -43,8 +43,6 @@ NS_LOG_COMPONENT_DEFINE ("PointToPointNetDevice");
 
 NS_OBJECT_ENSURE_REGISTERED (PointToPointNetDevice);
 
-const int number_of_bytes = 1100;
-
 // Compress a string to a list of output symbols.
 // The result will be written to the output iterator
 // starting at "result"; the final iterator is returned.
@@ -474,9 +472,17 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
           uint8_t* buffer = new uint8_t[size];
           packet->CopyData(buffer, size);
           
-          uLongf data_size = number_of_bytes + 2;
+          uint8_t *original_data_size = new uint8_t[2];
+          original_data_size[0] = buffer[0];
+          original_data_size[1] = buffer[1];
+
+
+          int a = int((unsigned char)(original_data_size[1]) << 8 |
+            (unsigned char)(original_data_size[0]));
+          uLongf data_size = a;
+
           uint8_t *decompress_buffer = new uint8_t[data_size];
-          int error = uncompress(decompress_buffer, &data_size, buffer, size);
+          int error = uncompress(decompress_buffer, &data_size, &buffer[2], size);//First two bytes is data length
           NS_LOG_DEBUG(error);
           decompress_buffer = &decompress_buffer[2];
           data_size = data_size - 2;
@@ -713,9 +719,18 @@ PointToPointNetDevice::Send (
       buffer[0] = 0x00;
       buffer[1] = 0x21;
       packet->CopyData(&(buffer[2]), size);
-      uint8_t *compress_buffer = new uint8_t[size+2];
+
+      size = size + 2;
+
+      uint8_t *original_data_size = new uint8_t[2];
+      memcpy(original_data_size, &size, sizeof(size));
+
+      uint8_t *compress_buffer = new uint8_t[size + 2];//2 bytes for original size
+
       uLongf new_size;
-      compress2(compress_buffer, &new_size, buffer, size + 2,9);
+      compress2(&compress_buffer[2], &new_size, buffer, size,9);
+      compress_buffer[0] = original_data_size[0];
+      compress_buffer[1] = original_data_size[1];
 
       // for (uint i = 0; i < new_size; ++i)
       //   std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)compress_buffer[i] << " ";
