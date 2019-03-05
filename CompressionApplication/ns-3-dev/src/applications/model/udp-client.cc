@@ -180,20 +180,13 @@ UdpClient::StopApplication (void)
 uint8_t*
 UdpClient::GetPayload (void)
 {
-     std::random_device rd;
-     std::uniform_int_distribution<std::uint8_t> dist(0, 255);
-
-    uint8_t *byte_array = new uint8_t[m_size]; //initialize the array of m_size size with all zero values
-    
-    if(m_entropy) { // if high entropy        
-        for(uint32_t n = 0; n < m_size; n++) {
-            uint8_t tmp = dist(rd);
-            byte_array[uint8_t(n)] = tmp;
-        }
-          // uint8_t urnd = open("/dev/urandom", O_RDONLY);
-          // read(urnd, &byte_array, sizeof(byte_array));
-          // close(urnd);
-
+    int randomData = open("/dev/urandom", O_RDONLY);
+    uint32_t n = m_size;
+    uint8_t *byte_array = new uint8_t[m_size - (8+4)]; //initialize the array of m_size size with all zero values
+    if(m_entropy) { // if high entropy
+      NS_LOG_UNCOND(n);
+      NS_LOG_UNCOND(m_size);
+      read(randomData, byte_array, m_size - (8+4));
     } // else low entropy
     return byte_array;
 }
@@ -206,9 +199,10 @@ UdpClient::Send (void)
   SeqTsHeader seqTs;
   seqTs.SetSeq (m_sent);
 //  Ptr<Packet> p = Create<Packet> (m_size-(8+4)); // 8+4 : the size of the seqTs header
-//  uint8_t* byte_array = new uint8_t[m_size]();
 
-  Ptr<Packet> p = Create<Packet> (GetPayload(), m_size-(8+4)); // 8+4 : the size of the seqTs header
+  
+  // uint8_t *buffer = GetPayload();
+  Ptr<Packet> p = new Packet(GetPayload(), m_size-(8+4)); // 8+4 : the size of the seqTs header
   p->AddHeader (seqTs);
 
   std::stringstream peerAddressStringStream;

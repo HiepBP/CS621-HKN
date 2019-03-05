@@ -720,15 +720,19 @@ PointToPointNetDevice::Send (
       buffer[1] = 0x21;
       packet->CopyData(&(buffer[2]), size);
 
+      // for (int i = 0; i < size+2; ++i)
+      //   std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i] << " ";
+      // std::cout << std::endl;
+
       size = size + 2;
 
       uint8_t *original_data_size = new uint8_t[2];
       memcpy(original_data_size, &size, sizeof(size));
 
-      uint8_t *compress_buffer = new uint8_t[size + 2];//2 bytes for original size
+      uint8_t *compress_buffer = new uint8_t[size * 2];//2 bytes for original size
 
-      uLongf new_size;
-      compress2(&compress_buffer[2], &new_size, buffer, size,9);
+      uLongf new_size = compressBound(size);
+      int status = compress2(&compress_buffer[2], &new_size, buffer, size,9);
       compress_buffer[0] = original_data_size[0];
       compress_buffer[1] = original_data_size[1];
 
