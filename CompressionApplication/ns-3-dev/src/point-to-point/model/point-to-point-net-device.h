@@ -155,8 +155,6 @@ public:
 
   int GetPacketsReceived(void);
 
-  void SetPacketSize(int packet_size);
-
   int GetReceivedSize(void);
 
   void ReadConfiguration();
@@ -486,8 +484,6 @@ private:
   bool m_compress = false;
 
   int m_protocol;
-  
-  int m_packet_size = 0;
 };
 
 } // namespace ns3
