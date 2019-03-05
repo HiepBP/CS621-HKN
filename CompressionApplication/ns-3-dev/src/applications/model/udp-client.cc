@@ -34,6 +34,8 @@
 #include <cstdlib>
 #include <cstdio>
 #include <random>
+#include <fcntl.h>
+#include <unistd.h>
 
 namespace ns3 {
 
@@ -188,6 +190,10 @@ UdpClient::GetPayload (void)
             uint8_t tmp = dist(rd);
             byte_array[uint8_t(n)] = tmp;
         }
+          // uint8_t urnd = open("/dev/urandom", O_RDONLY);
+          // read(urnd, &byte_array, sizeof(byte_array));
+          // close(urnd);
+
     } // else low entropy
     return byte_array;
 }

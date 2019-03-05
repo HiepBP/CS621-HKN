@@ -28,15 +28,19 @@ int main(int argc, char *argv[])
 	LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
 	LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
   // LogComponentEnable ("PointToPointNetDevice", LOG_LEVEL_ALL);
+    /* Configuration. */
+  //std::cout << "Enter Compression Link Capacity (xMbps) : ";
+  std::string link_capacity = "8Mbps";
+  //std::cin >> link_capacity;
+
   CommandLine cmd;
+  cmd.AddValue("link_capacity","User defined link capacity for compression link",link_capacity);
   cmd.Parse (argc, argv);
 
   double transmission_times[2] = {};
 
-  /* Configuration. */
-  std::cout << "Enter Compression Link Capacity (xMbps) : ";
-  std::string link_capacity = "8Mbps";
-  std::cin >> link_capacity;
+  std::cout << link_capacity << '\n';
+
 
   /* Build nodes. */
   NodeContainer client;

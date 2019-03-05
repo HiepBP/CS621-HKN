@@ -412,6 +412,13 @@ PointToPointNetDevice::SetCompress(bool is_router){
 
 
 void
+PointToPointNetDevice::SetPacketSize(int packet_size){
+  NS_LOG_FUNCTION (this);
+  m_packet_size = packet_size;
+}
+
+
+void
 PointToPointNetDevice::ReadConfiguration(){
   xmlDoc *doc = NULL;
   xmlNode *root_element = NULL;
@@ -420,6 +427,9 @@ PointToPointNetDevice::ReadConfiguration(){
   root_element = xmlDocGetRootElement(doc); 
       xmlNode *cur_node = NULL;
   for (cur_node = root_element; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+      printf("node type: Element, name: %s\n", cur_node->name);
+    }
     m_protocol = (int)strtol((char*)xmlNodeGetContent(cur_node), NULL, 16);
   }
   xmlFreeDoc(doc);       // free document
@@ -447,6 +457,8 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
         Ptr<Packet> originalPacket = packet->Copy ();      
         PppHeader header;
         packet->RemoveHeader (header);
+        //std::cout<< packets_received << " " << m_compress << " " << header.GetProtocol() << std::endl;
+        // std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
 
         if (header.GetProtocol() == (int)0x4021) {
           //Remove ip header from packet
@@ -461,17 +473,10 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
           
           uint8_t* buffer = new uint8_t[size];
           packet->CopyData(buffer, size);
-
-          uint8_t *original_data_size = new uint8_t[2];
-          original_data_size[0] = buffer[0];
-          original_data_size[1] = buffer[1];
           
-
-          int a = int((unsigned char)(original_data_size[1]) << 8 |
-            (unsigned char)(original_data_size[0]));
-          uLongf data_size = a;
+          uLongf data_size = number_of_bytes + 2;
           uint8_t *decompress_buffer = new uint8_t[data_size];
-          int error = uncompress(decompress_buffer, &data_size, &buffer[2], size);//First two bytes is data length
+          int error = uncompress(decompress_buffer, &data_size, buffer, size);
           NS_LOG_DEBUG(error);
           decompress_buffer = &decompress_buffer[2];
           data_size = data_size - 2;
@@ -491,6 +496,14 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
         }
         packet->AddHeader (header);
   
+      }
+      else {
+        //Increment packet received count for server end
+        // Ptr<Packet> originalPacket = packet->Copy ();      
+        // PppHeader header;
+        // originalPacket->RemoveHeader (header);
+        // std::cout<< packets_received << " " << m_compress << " " << header.GetProtocol() << std::endl;
+        // packets_received++;
       }
 
         // Hit the trace hooks.  All of these hooks are in the same place in this 
@@ -700,28 +713,20 @@ PointToPointNetDevice::Send (
       buffer[0] = 0x00;
       buffer[1] = 0x21;
       packet->CopyData(&(buffer[2]), size);
-
-      size = size + 2;
-
-      uint8_t *original_data_size = new uint8_t[2];
-      memcpy(original_data_size, &size, sizeof(size));
-
-      uint8_t *compress_buffer = new uint8_t[size + 2];//2 bytes for original size
+      uint8_t *compress_buffer = new uint8_t[size+2];
       uLongf new_size;
-      compress2(&compress_buffer[2], &new_size, buffer, size,9);
-      compress_buffer[0] = original_data_size[0];
-      compress_buffer[1] = original_data_size[1];
+      compress2(compress_buffer, &new_size, buffer, size + 2,9);
 
       // for (uint i = 0; i < new_size; ++i)
       //   std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)compress_buffer[i] << " ";
       // std::cout << std::endl;
 
       // packet->RemoveAtEnd(size);
-      size = new_size + 2;
+      size = new_size;
       //Update the packet
       packet = new Packet(compress_buffer, size);
       //Update udp size
-      size = size + 8;
+      size = new_size + 8;
       udp_header.ForcePayloadSize(size);
       packet->AddHeader(udp_header);
       //Update ip size

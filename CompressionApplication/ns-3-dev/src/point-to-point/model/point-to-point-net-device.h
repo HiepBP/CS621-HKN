@@ -153,6 +153,8 @@ public:
 
   void SetCompress(bool is_router);
 
+  void SetPacketSize(int packet_size);
+
   void ReadConfiguration();
 
   // The remaining methods are documented in ns3::NetDevice*
@@ -480,6 +482,8 @@ private:
   bool m_compress = false;
 
   int m_protocol;
+  
+  int m_packet_size = 0;
 };
 
 } // namespace ns3
