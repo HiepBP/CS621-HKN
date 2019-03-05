@@ -153,10 +153,6 @@ public:
 
   void SetCompress(bool is_router);
 
-  int GetPacketsReceived(void);
-
-  int GetReceivedSize(void);
-
   void ReadConfiguration();
 
   // The remaining methods are documented in ns3::NetDevice*

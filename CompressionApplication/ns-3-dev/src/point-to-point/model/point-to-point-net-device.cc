@@ -37,7 +37,7 @@
 
 namespace ns3 {
 int num_packets = 0;
-int packets_received = 0;
+//int packets_received = 0;
 
 NS_LOG_COMPONENT_DEFINE ("PointToPointNetDevice");
 
@@ -410,15 +410,6 @@ PointToPointNetDevice::SetCompress(bool is_router){
   this->ReadConfiguration();
 }
 
-int
-PointToPointNetDevice::GetPacketsReceived() {
-  return packets_received;
-}
-
-int
-PointToPointNetDevice::GetReceivedSize() {
-  return num_packets;
-}
 
 void
 PointToPointNetDevice::ReadConfiguration(){

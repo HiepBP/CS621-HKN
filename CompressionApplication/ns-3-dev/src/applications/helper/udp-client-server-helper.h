@@ -37,6 +37,8 @@ namespace ns3 {
 class UdpServerHelper
 {
 public:
+  static int GetPacketCount();
+  static double GetTimeDiff();
   /**
    * Create UdpServerHelper which will make life easier for people trying
    * to set up simulations with udp-client-server application.

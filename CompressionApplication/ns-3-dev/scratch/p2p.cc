@@ -31,6 +31,8 @@ int main(int argc, char *argv[])
   CommandLine cmd;
   cmd.Parse (argc, argv);
 
+  double transmission_times[2] = {};
+
   /* Configuration. */
   std::cout << "Enter Compression Link Capacity (xMbps) : ";
   std::string link_capacity = "8Mbps";
@@ -69,8 +71,6 @@ int main(int argc, char *argv[])
   p2p_r1->SetCompress(true);
 
   Ptr<PointToPointNetDevice> p2p_server = DynamicCast<PointToPointNetDevice>(ndc_r1_server.Get(1));
-  std::cout << "SERVER RECEIVED : " << p2p_server->GetReceivedSize();
-  std::cout << "SERVER RECEIVED : " << p2p_server->GetPacketsReceived();
 
   /* Install the IP stack. */
   InternetStackHelper internetStackH;
@@ -96,18 +96,18 @@ int main(int argc, char *argv[])
   UdpServerHelper server_udpEcho_0 (port_udpEcho_0);
   ApplicationContainer server_app = server_udpEcho_0.Install (server.Get(0));
   server_app.Start (Seconds (1.0));
-  server_app.Stop (Seconds (30.0));
-  Time interPacketInterval_udpEcho_0 = MilliSeconds (500);
+  server_app.Stop (Seconds (3500.0));
+  Time interPacketInterval_udpEcho_0 = MilliSeconds(50);
 
   int packet_size = 1100;
   p2p_r0->SetPacketSize(packet_size);
   p2p_r1->SetPacketSize(packet_size);
 
   UdpClientHelper udp_client_0 (iface_ndc_r1_server.GetAddress(0), 9);
-  udp_client_0.SetAttribute ("MaxPackets", UintegerValue (5));
+  udp_client_0.SetAttribute ("MaxPackets", UintegerValue (6000));
   udp_client_0.SetAttribute ("Interval", TimeValue (interPacketInterval_udpEcho_0));
   udp_client_0.SetAttribute ("PacketSize", UintegerValue (1100));
-  udp_client_0.SetAttribute ("Entropy", BooleanValue(false));
+  udp_client_0.SetAttribute ("Entropy", BooleanValue(true));
   ApplicationContainer client_app = udp_client_0.Install (client.Get (0));
   client_app.Start (Seconds (2.0));
   client_app.Stop (Seconds (6002.0));
@@ -135,8 +135,11 @@ int main(int argc, char *argv[])
   Simulator::Run ();
   Simulator::Destroy ();
 
-  std::cout << "SERVER RECEIVED : " << p2p_server->GetReceivedSize();
-  std::cout << "SERVER RECEIVED : " << p2p_server->GetPacketsReceived();
+  std::cout << "::::: RECEIVED : " << server_udpEcho_0.GetPacketCount() << ":::::  TIME DIFF : " << server_udpEcho_0.GetTimeDiff() << "ms\n";
+  transmission_times[0] = server_udpEcho_0.GetTimeDiff();
 
+  for (int i=0; i < int(sizeof(transmission_times)/sizeof(*transmission_times)); i++) {
+    std::cout << transmission_times[i] << '\n';
+  }
   return 0;
 }
