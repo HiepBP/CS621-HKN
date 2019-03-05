@@ -153,11 +153,7 @@ public:
 
   void SetCompress(bool is_router);
 
-  int GetPacketsReceived(void);
-
   void SetPacketSize(int packet_size);
-
-  int GetReceivedSize(void);
 
   void ReadConfiguration();
 

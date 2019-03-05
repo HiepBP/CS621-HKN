@@ -37,7 +37,7 @@
 
 namespace ns3 {
 int num_packets = 0;
-int packets_received = 0;
+//int packets_received = 0;
 
 NS_LOG_COMPONENT_DEFINE ("PointToPointNetDevice");
 
@@ -410,10 +410,6 @@ PointToPointNetDevice::SetCompress(bool is_router){
   this->ReadConfiguration();
 }
 
-int
-PointToPointNetDevice::GetPacketsReceived() {
-  return packets_received;
-}
 
 void
 PointToPointNetDevice::SetPacketSize(int packet_size){
@@ -421,10 +417,6 @@ PointToPointNetDevice::SetPacketSize(int packet_size){
   m_packet_size = packet_size;
 }
 
-int
-PointToPointNetDevice::GetReceivedSize() {
-  return num_packets;
-}
 
 void
 PointToPointNetDevice::ReadConfiguration(){
@@ -465,8 +457,7 @@ PointToPointNetDevice::Receive (Ptr<Packet> packet)
         Ptr<Packet> originalPacket = packet->Copy ();      
         PppHeader header;
         packet->RemoveHeader (header);
-        std::cout<< packets_received << " " << m_compress << " " << header.GetProtocol() << std::endl;
-        packets_received++;
+        //std::cout<< packets_received << " " << m_compress << " " << header.GetProtocol() << std::endl;
         // std::cout<<"Packet size: "<<packet->GetSize()<<"- Protocol: "<<header.GetProtocol()<<std::endl;
 
         if (header.GetProtocol() == (int)0x4021) {

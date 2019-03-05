@@ -41,7 +41,16 @@ void
 UdpServerHelper::SetAttribute (std::string name, const AttributeValue &value)
 {
   m_factory.Set (name, value);
+}
 
+int
+UdpServerHelper::GetPacketCount () {
+  return UdpServer::GetPacketCount();
+}
+
+double
+UdpServerHelper::GetTimeDiff() {
+  return UdpServer::GetTimeDiff();
 }
 
 ApplicationContainer

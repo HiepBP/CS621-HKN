@@ -30,6 +30,7 @@
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
 #include "packet-loss-counter.h"
+#include <tuple>
 
 #include "seq-ts-header.h"
 #include "udp-server.h"
@@ -40,7 +41,15 @@ NS_LOG_COMPONENT_DEFINE ("UdpServer");
 
 NS_OBJECT_ENSURE_REGISTERED (UdpServer);
 
+int total_packets = 0;
+double time_diff = 0;
+int seq_num = -1;
 
+clock_t start;
+clock_t end;
+
+clock_t n_s;
+clock_t n_e;
 TypeId
 UdpServer::GetTypeId (void)
 {
@@ -148,7 +157,6 @@ UdpServer::StartApplication (void)
     }
 
   m_socket6->SetRecvCallback (MakeCallback (&UdpServer::HandleRead, this));
-
 }
 
 void
@@ -162,6 +170,17 @@ UdpServer::StopApplication ()
     }
 }
 
+int
+UdpServer::GetPacketCount() {
+  return total_packets;
+}
+double
+UdpServer::GetTimeDiff() {
+  time_diff = ( (end - start) / (CLOCKS_PER_SEC/1000.0) );
+  //std::cout << "@gettimediff \nSTARTED @ " << start << "  :  ENDED @ " << end <<"\n";
+  return time_diff;
+}
+
 void
 UdpServer::HandleRead (Ptr<Socket> socket)
 {
@@ -169,6 +188,7 @@ UdpServer::HandleRead (Ptr<Socket> socket)
   Ptr<Packet> packet;
   Address from;
   Address localAddress;
+  n_s = clock();
   while ((packet = socket->RecvFrom (from)))
     {
       socket->GetSockName (localAddress);
@@ -202,8 +222,16 @@ UdpServer::HandleRead (Ptr<Socket> socket)
 
           m_lossCounter.NotifyReceived (currentSequenceNumber);
           m_received++;
-        }
+
+          if (total_packets == 0) {
+            start = clock();
+          }
+
+          total_packets++;
+        } 
+
     }
+    end = clock();
 }
 
 } // Namespace ns3
