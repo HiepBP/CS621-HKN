@@ -732,7 +732,7 @@ PointToPointNetDevice::Send (
       uint8_t *compress_buffer = new uint8_t[size * 2];//2 bytes for original size
 
       uLongf new_size = compressBound(size);
-      int status = compress2(&compress_buffer[2], &new_size, buffer, size,9);
+      compress2(&compress_buffer[2], &new_size, buffer, size,9);
       compress_buffer[0] = original_data_size[0];
       compress_buffer[1] = original_data_size[1];
 
