@@ -64,6 +64,7 @@ public:
    * \param addr remote address
    */
   void SetRemote (Address addr);
+  void GetPayload (void);
 
 //  void SetEntropy (bool entropy);
 
@@ -75,7 +76,6 @@ private:
   virtual void StartApplication (void);
   virtual void StopApplication (void);
 
-  uint8_t* GetPayload (void);
   /**
    * \brief Send a packet
    */

@@ -43,42 +43,37 @@ NS_LOG_COMPONENT_DEFINE ("UdpClient");
 
 NS_OBJECT_ENSURE_REGISTERED (UdpClient);
 
+uint8_t *buffer[6000];
+
 TypeId
 UdpClient::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::UdpClient")
-    .SetParent<Application> ()
-    .SetGroupName("Applications")
-    .AddConstructor<UdpClient> ()
-    .AddAttribute ("MaxPackets",
-                   "The maximum number of packets the application will send",
-                   UintegerValue (100),
-                   MakeUintegerAccessor (&UdpClient::m_count),
-                   MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("Interval",
-                   "The time to wait between packets", TimeValue (Seconds (1.0)),
-                   MakeTimeAccessor (&UdpClient::m_interval),
-                   MakeTimeChecker ())
-    .AddAttribute ("RemoteAddress",
-                   "The destination Address of the outbound packets",
-                   AddressValue (),
-                   MakeAddressAccessor (&UdpClient::m_peerAddress),
-                   MakeAddressChecker ())
-    .AddAttribute ("RemotePort", "The destination port of the outbound packets",
-                   UintegerValue (100),
-                   MakeUintegerAccessor (&UdpClient::m_peerPort),
-                   MakeUintegerChecker<uint16_t> ())
-    .AddAttribute ("PacketSize",
-                   "Size of packets generated. The minimum packet size is 12 bytes which is the size of the header carrying the sequence number and the time stamp.",
-                   UintegerValue (1024),
-                   MakeUintegerAccessor (&UdpClient::m_size),
-                   MakeUintegerChecker<uint32_t> (12,65507))
-    .AddAttribute ("Entropy",
-                   "Boolean value identifying if low or high entropy is to be sent. If true, set to high entropy, otherwise, low entropy",
-                   BooleanValue (true),
-                   MakeBooleanAccessor (&UdpClient::m_entropy),
-                   MakeBooleanChecker ())
-  ;
+  static TypeId tid =
+      TypeId ("ns3::UdpClient")
+          .SetParent<Application> ()
+          .SetGroupName ("Applications")
+          .AddConstructor<UdpClient> ()
+          .AddAttribute ("MaxPackets", "The maximum number of packets the application will send",
+                         UintegerValue (100), MakeUintegerAccessor (&UdpClient::m_count),
+                         MakeUintegerChecker<uint32_t> ())
+          .AddAttribute ("Interval", "The time to wait between packets", TimeValue (Seconds (1.0)),
+                         MakeTimeAccessor (&UdpClient::m_interval), MakeTimeChecker ())
+          .AddAttribute ("RemoteAddress", "The destination Address of the outbound packets",
+                         AddressValue (), MakeAddressAccessor (&UdpClient::m_peerAddress),
+                         MakeAddressChecker ())
+          .AddAttribute ("RemotePort", "The destination port of the outbound packets",
+                         UintegerValue (100), MakeUintegerAccessor (&UdpClient::m_peerPort),
+                         MakeUintegerChecker<uint16_t> ())
+          .AddAttribute ("PacketSize",
+                         "Size of packets generated. The minimum packet size is 12 bytes which is "
+                         "the size of the header carrying the sequence number and the time stamp.",
+                         UintegerValue (1024), MakeUintegerAccessor (&UdpClient::m_size),
+                         MakeUintegerChecker<uint32_t> (12, 65507))
+          .AddAttribute ("Entropy",
+                         "Boolean value identifying if low or high entropy is to be sent. If true, "
+                         "set to high entropy, otherwise, low entropy",
+                         BooleanValue (true), MakeBooleanAccessor (&UdpClient::m_entropy),
+                         MakeBooleanChecker ());
   return tid;
 }
 
@@ -127,21 +122,23 @@ UdpClient::StartApplication (void)
     {
       TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
       m_socket = Socket::CreateSocket (GetNode (), tid);
-      if (Ipv4Address::IsMatchingType(m_peerAddress) == true)
+      if (Ipv4Address::IsMatchingType (m_peerAddress) == true)
         {
           if (m_socket->Bind () == -1)
             {
               NS_FATAL_ERROR ("Failed to bind socket");
             }
-          m_socket->Connect (InetSocketAddress (Ipv4Address::ConvertFrom(m_peerAddress), m_peerPort));
+          m_socket->Connect (
+              InetSocketAddress (Ipv4Address::ConvertFrom (m_peerAddress), m_peerPort));
         }
-      else if (Ipv6Address::IsMatchingType(m_peerAddress) == true)
+      else if (Ipv6Address::IsMatchingType (m_peerAddress) == true)
         {
           if (m_socket->Bind6 () == -1)
             {
               NS_FATAL_ERROR ("Failed to bind socket");
             }
-          m_socket->Connect (Inet6SocketAddress (Ipv6Address::ConvertFrom(m_peerAddress), m_peerPort));
+          m_socket->Connect (
+              Inet6SocketAddress (Ipv6Address::ConvertFrom (m_peerAddress), m_peerPort));
         }
       else if (InetSocketAddress::IsMatchingType (m_peerAddress) == true)
         {
@@ -165,7 +162,7 @@ UdpClient::StartApplication (void)
         }
     }
 
-  m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
+  m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket>> ());
   m_socket->SetAllowBroadcast (true);
   m_sendEvent = Simulator::Schedule (Seconds (0.0), &UdpClient::Send, this);
 }
@@ -177,22 +174,25 @@ UdpClient::StopApplication (void)
   Simulator::Cancel (m_sendEvent);
 }
 
-uint8_t*
+void
 UdpClient::GetPayload (void)
 {
-    int randomData = open("/dev/random", O_RDONLY);
-    uint32_t n = m_size - (8+4);
-    uint8_t *byte_array = new uint8_t[n](); //initialize the array of m_size size with all zero values
-    if(m_entropy) { // if high entropy
+    for (int i = 0; i < 6000; i++)
+    {
+      int randomData = open ("/dev/random", O_RDONLY);
+      uint32_t n = m_size - (8 + 4);
+      uint8_t *byte_array =
+          new uint8_t[n](); //initialize the array of m_size size with all zero values
       size_t randomDataLen = 0;
       while (randomDataLen < n)
-      {
-          ssize_t result = read(randomData, byte_array + randomDataLen, n - randomDataLen);
+        {
+          ssize_t result = read (randomData, byte_array + randomDataLen, n - randomDataLen);
           randomDataLen += result;
-      }
-    } // else low entropy
-    close(randomData);
-    return byte_array;
+        }
+      buffer[i] = byte_array;
+      close (randomData);
+    }
+
 }
 
 void
@@ -202,7 +202,15 @@ UdpClient::Send (void)
   NS_ASSERT (m_sendEvent.IsExpired ());
   SeqTsHeader seqTs;
   seqTs.SetSeq (m_sent);
-  Ptr<Packet> p = new Packet(GetPayload(), m_size - (8+4)); // 8+4 : the size of the seqTs header
+  Ptr<Packet> p;
+  if (m_entropy)
+    {
+      p = new Packet (buffer[m_sent], m_size - (8 + 4)); // 8+4 : the size of the seqTs header
+    }
+  else
+    {
+      p = Create<Packet> (m_size - (8 + 4)); // 8+4 : the size of the seqTs header
+    }
   p->AddHeader (seqTs);
 
   std::stringstream peerAddressStringStream;
@@ -218,11 +226,9 @@ UdpClient::Send (void)
   if ((m_socket->Send (p)) >= 0)
     {
       ++m_sent;
-      NS_LOG_INFO ("TraceDelay TX " << m_size << " bytes to "
-                                    << peerAddressStringStream.str () << " Uid: "
-                                    << p->GetUid () << " Time: "
-                                    << (Simulator::Now ()).GetSeconds ());
-
+      NS_LOG_INFO ("TraceDelay TX " << m_size << " bytes to " << peerAddressStringStream.str ()
+                                    << " Uid: " << p->GetUid ()
+                                    << " Time: " << (Simulator::Now ()).GetSeconds ());
     }
   else
     {

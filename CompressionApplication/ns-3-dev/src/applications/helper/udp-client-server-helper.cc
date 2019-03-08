@@ -44,13 +44,21 @@ UdpServerHelper::SetAttribute (std::string name, const AttributeValue &value)
 }
 
 int
-UdpServerHelper::GetPacketCount () {
-  return UdpServer::GetPacketCount();
+UdpServerHelper::GetPacketCount_1 () {
+  return UdpServer::GetPacketCount_1();
+}
+int
+UdpServerHelper::GetPacketCount_2 () {
+  return UdpServer::GetPacketCount_2();
 }
 
 double
-UdpServerHelper::GetTimeDiff() {
-  return UdpServer::GetTimeDiff();
+UdpServerHelper::GetTimeDiff_1() {
+  return UdpServer::GetTimeDiff_1();
+}
+double
+UdpServerHelper::GetTimeDiff_2() {
+  return UdpServer::GetTimeDiff_2();
 }
 
 ApplicationContainer

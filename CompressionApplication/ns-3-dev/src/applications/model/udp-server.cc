@@ -41,15 +41,31 @@ NS_LOG_COMPONENT_DEFINE ("UdpServer");
 
 NS_OBJECT_ENSURE_REGISTERED (UdpServer);
 
+int total_packets_1 = 0;
+int total_packets_2 = 0;
 int total_packets = 0;
-double time_diff = 0;
-int seq_num = -1;
+ns3::Time time_diff_1;
+ns3::Time time_diff_2;
+double time_diff;
+uint16_t port_1 = 9;
+uint16_t port_2 = 10;
+uint16_t curr_port;
+// int mode = 0;
+// bool restart = false;
+
+ns3::Time start_1;
+ns3::Time end_1;
+ns3::Time start_2;
+ns3::Time end_2;
 
 clock_t start;
 clock_t end;
+int count = 0;
 
 clock_t n_s;
 clock_t n_e;
+int t_1, t_2 = 0;
+bool f_1,f_2 = false;
 TypeId
 UdpServer::GetTypeId (void)
 {
@@ -129,6 +145,7 @@ void
 UdpServer::StartApplication (void)
 {
   NS_LOG_FUNCTION (this);
+  curr_port = m_port;
 
   if (m_socket == 0)
     {
@@ -171,14 +188,26 @@ UdpServer::StopApplication ()
 }
 
 int
-UdpServer::GetPacketCount() {
-  return total_packets;
+UdpServer::GetPacketCount_1() {
+  return t_1;
+}
+int
+UdpServer::GetPacketCount_2() {
+  return t_2;
 }
 double
-UdpServer::GetTimeDiff() {
-  time_diff = ( (end - start) / (CLOCKS_PER_SEC/1000.0) );
-  //std::cout << "@gettimediff \nSTARTED @ " << start << "  :  ENDED @ " << end <<"\n";
-  return time_diff;
+UdpServer::GetTimeDiff_1() {
+    std::cout << "\n LOW ENT STARTED @ " << n_s << "  :  ENDED @ " << n_e <<"\n";
+    time_diff = ( (n_e - n_s) / (CLOCKS_PER_SEC/1000.0) );
+    std::cout << "TIME DIFF (ms) : " << time_diff << "  TOTAL PACKETS : " << t_1 <<"\n";
+    return time_diff;
+}
+double
+UdpServer::GetTimeDiff_2() {
+    std::cout  << "\n HIGH ENT STARTED @ " << start << "  :  ENDED @ " << end <<"\n";
+    time_diff = ( (end - start) / (CLOCKS_PER_SEC/1000.0) );
+    std::cout << "TIME DIFF (ms) : " << time_diff << "  TOTAL PACKETS : " << t_2 << '\n';
+    return time_diff;
 }
 
 void
@@ -188,7 +217,6 @@ UdpServer::HandleRead (Ptr<Socket> socket)
   Ptr<Packet> packet;
   Address from;
   Address localAddress;
-  n_s = clock();
   while ((packet = socket->RecvFrom (from)))
     {
       socket->GetSockName (localAddress);
@@ -196,9 +224,32 @@ UdpServer::HandleRead (Ptr<Socket> socket)
       m_rxTraceWithAddresses (packet, from, localAddress);
       if (packet->GetSize () > 0)
         {
+          if((int)Simulator::Now().GetSeconds() == 2 && (!f_1)) {
+            start = clock();
+            end = clock();
+            f_1 = true;
+          }
+          if((int)Simulator::Now().GetSeconds() == 10002 && (!f_2)) {
+            n_s = start;
+            n_e = end;
+            time_diff = ((n_e-n_s) / (CLOCKS_PER_SEC/1000.0));
+
+            start = clock();
+            end = clock();
+            f_2 = true;
+          }
+
+          if((int)Simulator::Now().GetSeconds() >= 2 && (int)Simulator::Now().GetSeconds() < 10002 && (f_1)) {
+            t_1++;
+          }
+          if((int)Simulator::Now().GetSeconds() >= 10002 && (f_2)) {
+            t_2++;
+          }
+
           SeqTsHeader seqTs;
           packet->RemoveHeader (seqTs);
           uint32_t currentSequenceNumber = seqTs.GetSeq ();
+
           if (InetSocketAddress::IsMatchingType (from))
             {
               NS_LOG_INFO ("TraceDelay: RX " << packet->GetSize () <<
@@ -223,15 +274,10 @@ UdpServer::HandleRead (Ptr<Socket> socket)
           m_lossCounter.NotifyReceived (currentSequenceNumber);
           m_received++;
 
-          if (total_packets == 0) {
-            start = clock();
-          }
-
-          total_packets++;
+          end = clock();
         } 
 
     }
-    end = clock();
 }
 
 } // Namespace ns3

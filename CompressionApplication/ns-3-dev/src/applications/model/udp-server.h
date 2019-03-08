@@ -48,8 +48,12 @@ namespace ns3 {
 class UdpServer : public Application
 {
 public:
-  static int GetPacketCount();
-  static double GetTimeDiff();
+  static int GetPacketCount_1();
+  static int GetPacketCount_2();
+  static double GetTimeDiff_1();
+  static double GetTimeDiff_2();
+
+  static void SetTrain(int mode);
   /**
    * \brief Get the type ID.
    * \return the object TypeId

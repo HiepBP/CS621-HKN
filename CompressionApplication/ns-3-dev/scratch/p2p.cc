@@ -31,16 +31,13 @@ int main(int argc, char *argv[])
     /* Configuration. */
   //std::cout << "Enter Compression Link Capacity (xMbps) : ";
   std::string link_capacity = "8Mbps";
-  //std::cin >> link_capacity;
 
   CommandLine cmd;
   cmd.AddValue("link_capacity","User defined link capacity for compression link",link_capacity);
   cmd.Parse (argc, argv);
 
   double transmission_times[2] = {};
-
   std::cout << link_capacity << '\n';
-
 
   /* Build nodes. */
   NodeContainer client;
@@ -95,26 +92,39 @@ int main(int argc, char *argv[])
   /* Generate Route. */
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
+  int packet_size = 1100;
+  p2p_r0->SetPacketSize(packet_size);
+  p2p_r1->SetPacketSize(packet_size);
+
   /* Generate Application. */
   uint16_t port_udpEcho_0 = 9;
   UdpServerHelper server_udpEcho_0 (port_udpEcho_0);
   ApplicationContainer server_app = server_udpEcho_0.Install (server.Get(0));
   server_app.Start (Seconds (1.0));
-  server_app.Stop (Seconds (3500.0));
-  Time interPacketInterval_udpEcho_0 = MilliSeconds(50);
+  server_app.Stop (Seconds (20000.0));
+  //Time interPacketInterval_udpEcho_0 = MilliSeconds(500);
 
-  int packet_size = 1100;
-  p2p_r0->SetPacketSize(packet_size);
-  p2p_r1->SetPacketSize(packet_size);
-
-  UdpClientHelper udp_client_0 (iface_ndc_r1_server.GetAddress(0), 9);
+  UdpClientHelper udp_client_0 (iface_ndc_r1_server.GetAddress(0), port_udpEcho_0);
   udp_client_0.SetAttribute ("MaxPackets", UintegerValue (6000));
-  udp_client_0.SetAttribute ("Interval", TimeValue (interPacketInterval_udpEcho_0));
+ // udp_client_0.SetAttribute ("Interval", TimeValue (interPacketInterval_udpEcho_0));
   udp_client_0.SetAttribute ("PacketSize", UintegerValue (1100));
-  udp_client_0.SetAttribute ("Entropy", BooleanValue(true));
-  ApplicationContainer client_app = udp_client_0.Install (client.Get (0));
-  client_app.Start (Seconds (2.0));
-  client_app.Stop (Seconds (6002.0));
+  udp_client_0.SetAttribute ("Entropy", BooleanValue(false));
+  ApplicationContainer client_app_1 = udp_client_0.Install (client.Get (0));
+  Ptr<UdpClient> udp_client_1 = DynamicCast<UdpClient>(client_app_1.Get(0));
+  udp_client_1->GetPayload();
+  client_app_1.Start (Seconds (2.0));
+  client_app_1.Stop (Seconds (6005.0));
+
+  UdpClientHelper udp_client_2 (iface_ndc_r1_server.GetAddress(0), port_udpEcho_0);
+  udp_client_2.SetAttribute ("MaxPackets", UintegerValue (6000));
+ // udp_client_2.SetAttribute ("Interval", TimeValue (interPacketInterval_udpEcho_0));
+  udp_client_2.SetAttribute ("PacketSize", UintegerValue (1100));
+  udp_client_2.SetAttribute ("Entropy", BooleanValue(true));
+  ApplicationContainer client_app_2 = udp_client_2.Install (client.Get (0));
+  Ptr<UdpClient> udp_client_3 = DynamicCast<UdpClient>(client_app_2.Get(0));
+  udp_client_3->GetPayload();
+  client_app_2.Start (Seconds (10002.0));
+  client_app_2.Stop (Seconds (16005.0));
 
 	AnimationInterface anim ("p2p.xml");
 	anim.SetConstantPosition (client.Get(0), 0.0, 0.0);
@@ -139,11 +149,22 @@ int main(int argc, char *argv[])
   Simulator::Run ();
   Simulator::Destroy ();
 
-  std::cout << "::::: RECEIVED : " << server_udpEcho_0.GetPacketCount() << ":::::  TIME DIFF : " << server_udpEcho_0.GetTimeDiff() << "ms\n";
-  transmission_times[0] = server_udpEcho_0.GetTimeDiff();
+  std::cout << "::::: RECEIVED : " << server_udpEcho_0.GetPacketCount_1() << ":::::  TIME DIFF : " << server_udpEcho_0.GetTimeDiff_1() << "ms\n";
+  std::cout << "::::: RECEIVED : " << server_udpEcho_0.GetPacketCount_2() << ":::::  TIME DIFF : " << server_udpEcho_0.GetTimeDiff_2() << "ms\n";
+
+  transmission_times[0] = server_udpEcho_0.GetTimeDiff_1();
+  transmission_times[1] = server_udpEcho_0.GetTimeDiff_2();
 
   for (int i=0; i < int(sizeof(transmission_times)/sizeof(*transmission_times)); i++) {
-    std::cout << transmission_times[i] << '\n';
+    std::cout << "UDP TRAIN " << i << " : " << transmission_times[i] << " ms \n";
+  }
+  double difference = transmission_times[1] - transmission_times[0];
+  std::cout << "DIFFERENCE : " << difference << "ms\n";
+  if (abs(difference) > 100) {
+    std::cout << "COMPRESSION DETECTED!!!\n";
+  }
+  else {
+    std::cout << "COMPRESSION NOT DETECTED!!!\n";
   }
   return 0;
 }
