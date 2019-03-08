@@ -19,7 +19,7 @@ To run the application, you need to install these packages into your machine.
 
 Build Libdash library:
 
-	cd AMuSt-libdash/libdash
+	cd CompressionApplication/AMuSt-libdash/libdash
 	mkdir build
 	cd build
 	cmake ../
@@ -27,11 +27,12 @@ Build Libdash library:
 
 Build NS-3 Application
 
-	cd ns-3-dev/
+	cd CompressionApplication/ns-3-dev
 	./waf configure
 	./waf build
 
 ## Running application
 
+	cd CompressionApplication/ns-3-dev
 	./waf --run "p2p --link_capacity=10Mbps"
 
