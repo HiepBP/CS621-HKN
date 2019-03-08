@@ -33,3 +33,5 @@ Build NS-3 Application
 
 ## Running application
 
+	./waf --run "p2p --link_capacity=10Mbps"
+
